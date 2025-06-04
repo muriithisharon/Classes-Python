@@ -1,30 +1,62 @@
+import datetime
+class Transaction:
+    def __init__(self, date, time, narration, amount,transaction_type):
+        self.transaction_type = transaction_type
+        self.date = date
+        self.time = time
+        self.narration = narration
+        self.amount = amount
+
 class Account:
-    def __init__(self, name,acc ):
+    def __init__(self, name,acc):
         self.name = name
-        self.balance = 0
+        self._balance = 500
+        self._account_number = acc
+        self.loan_balance = 0
         self.deposits = []
         self.withdrawals = []
-        self.account_number = acc
-        self.loan_balance = 0
+        self.minimum_balance = 500
+        self.is_frozen = False
+        self.transactions =[]
+        
 
-        #Deposit: method to deposit funds, store the deposit and return a message with the new balance to the customer. It should only accept positive amount
+    #Deposit: method to deposit funds, store the deposit and return a message with the new balance to the customer. It should only accept positive amount
     def deposit(self, amount):
+        current_date = datetime.datetime.now()
         if amount > 0:
+            self._balance += amount
             self.deposits.append(amount)
-            self.balance += amount
-            return f"Hello {self.name}, your balance is {self.balance}."
+            self.transactions.append(Transaction(current_date, current_date.time(), "Deposit", amount, "Deposit"))
+            return f"Dear {self.name}, your have deposited {amount} and your new balance is {self._balance}."
         
     # Withdraw: method to withdraw funds, store the withdrawal and return a message with the new balance to the customer. An account cannot be overdrawn.    
     def withdraw(self, amount):
-        if 0 < amount <= self.balance:
-            self.balance -= amount
-            return f" Hello {self.name}, your balance is {self.balance}."
-        return "Insufficient funds"
-    def get_balance(self):
-        return f"Hello your balance is {self.balance}."
+        if 0 < amount <= self._balance:
+            current_date = datetime.datetime.now()
+            self._balance -= amount
+            self.withdrawals.append(amount)
+            self.transactions.append(Transaction(current_date, current_date.time(), "Withdrawal", amount, "Withdrawal"))
+            return f" Dear  {self.name}, your withdrawal of {amount} was successful and your balance is {self._balance}."
+        return f"Dear {self.name} you have insufficient funds to withdraw {amount}. Your current balance is {self._balance}."
     
+    def get_balance_value(self):
+        return sum(t.amount for t in self.transactions if t.transaction_type == "Deposit") - sum(t.amount for t in self.transactions if t.transaction_type == "Withdrawal")
+    def get_balance(self):
+        balance = self.get_balance_value()
+        return f"Hello {self.name}, your current  balance is {balance}."  
     # Transfer Funds: Method to transfer funds from one account to an instance of another account.
     def transfer(self, amount, target_account):
+        if amount <= 0:
+            return "Transfer amount must be positive"
+        if self.is_frozen:
+            return "Your account is frozen. Cannot transfer funds."
+        if self.get_balance_value() < amount:
+            return "Insufficient funds for transfer"
+        if self.withdraw(amount):
+            target_account.deposit(amount)
+            self.transactions.append(Transaction(datetime.datetime.now(), datetime.datetime.now().time(), "Transfer", amount, "Transfer"))
+            target_account.transactions.append(Transaction(datetime.datetime.now(), datetime.datetime.now().time(), "Transfer", amount, "Transfer"))
+            return f'{self.name} you have transferred {amount} to {target_account.name}.'
         if self.withdraw(amount):
             target_account.deposit(amount)
             return f'{self.name} you have transferred {amount} to {target_account.name}.'
@@ -101,11 +133,4 @@ class Account:
         if self.balance == 0:
             return f"Account {self.account_number} closed successfully."
         
-
-
-
-
-
-
-
 
